@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body {
+      font-family: 'Inter', Arial, sans-serif;
+      background: #fafbfc;
+      margin: 0;
+      padding: 20px;
+      color: #23272f;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .box {
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 1.5px 8px rgba(40,46,60,0.06);
+      padding: 18px 18px 15px 18px;
+      border: none;
+      margin-bottom: 0;
+    }
+    .box label {
+      font-size: 14px;
+      margin-bottom: 6px;
+      display: block;
+      color: #424851;
+    }
+    .box input, .box select, .box textarea {
+      width: 100%;
+      border: 1px solid #e1e4e8;
+      border-radius: 10px;
+      font-size: 15px;
+      padding: 8px;
+      margin-top: 4px;
+      margin-bottom: 0;
+      background: #f5f6f8;
+      outline: none;
+      transition: border 0.2s;
+    }
+    .box input:focus, .box select:focus, .box textarea:focus {
+      border: 1.5px solid #b9bfd4;
+    }
+    .send-btn {
+      background: linear-gradient(90deg, #2452e6 0%, #7b61ff 100%);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background 0.2s;
+    }
+    .send-btn:active {
+      background: #2452e6;
+    }
+    .counter {
+      font-size: 15px;
+      color: #6c6f7a;
+      text-align: right;
+      margin-top: 8px;
+    }
+    .notif-success {
+      background: #d1fae5;
+      color: #166534;
+      border-radius: 10px;
+      padding: 10px;
+      margin-top: 10px;
+      text-align: center;
+      font-size: 15px;
+    }
+  </style>
+</head>
+<body>
+  <form id="mail-merge-form" class="container" onsubmit="onSend(event)">
+    <div class="box">
+      <label for="senderEmail">Correo de salida</label>
+      <select id="senderEmail" name="senderEmail"></select>
+    </div>
+    <div class="box">
+      <label for="draftId">Plantilla (borrador de Gmail)</label>
+      <select id="draftId" name="draftId"></select>
+    </div>
+    <button class="send-btn" type="submit">Enviar correos</button>
+    <div class="counter" id="counter"></div>
+    <div id="notif-area"></div>
+  </form>
+  <script>
+    // Cargar aliases
+    google.script.run.withSuccessHandler(function(aliases) {
+      const select = document.getElementById('senderEmail');
+      aliases.forEach(alias => {
+        let opt = document.createElement('option');
+        opt.value = alias;
+        opt.textContent = alias;
+        select.appendChild(opt);
+      });
+    }).getGmailAliases();
+
+    // Cargar borradores como plantillas
+    google.script.run.withSuccessHandler(function(drafts) {
+      const select = document.getElementById('draftId');
+      drafts.forEach(draft => {
+        let opt = document.createElement('option');
+        opt.value = draft.id;
+        opt.textContent = draft.subject;
+        select.appendChild(opt);
+      });
+    }).getGmailDraftTemplates();
+
+    // Conteo de correos para mostrar en el panel
+    function updateCounter(sent, total) {
+      document.getElementById('counter').textContent =
+        `Enviados: ${sent} / ${total}`;
+    }
+
+    // Envía correos y actualiza UI
+    function onSend(e) {
+      e.preventDefault();
+      const senderEmail = document.getElementById('senderEmail').value;
+      const draftId = document.getElementById('draftId').value;
+      google.script.run.withSuccessHandler(function(res) {
+        updateCounter(res.sent, res.count);
+        document.getElementById('notif-area').innerHTML =
+          `<div class="notif-success">¡${res.sent} correos enviados exitosamente!</div>`;
+      }).sendBulkEmailsWithTemplate({
+        senderEmail: senderEmail,
+        senderName: senderEmail,
+        draftId: draftId
+      });
+    }
+  </script>
+</body>
+</html>
